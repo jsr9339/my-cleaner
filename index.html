@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; form-action 'none'; base-uri 'none'">
+<title>근태 정리기</title>
+<link rel="stylesheet" href="style.css?v=12">
+</head>
+<body>
+<header class="top">
+  <div class="bar">
+    <div class="logo"></div><h1>근태 정리기</h1>
+    <span class="chip green">🔒 넣은 파일은 이 컴퓨터 밖으로 나가지 않습니다</span>
+    <span class="sp"></span><span id="topfile" class="muted small"></span>
+  </div>
+  <nav class="tabs" id="tabs" aria-label="단계"></nav>
+</header>
+
+<main>
+  <div class="heading"><h2 id="t"></h2><span id="d"></span><button id="run" class="btn run-top" type="button" disabled hidden>규칙대로 정리</button></div>
+  <p id="status" class="note" hidden></p>
+  <p id="error" class="error" hidden></p>
+
+  <!-- 1. 파일 넣기 -->
+  <div class="panel" id="p1">
+    <section id="s1" class="card">
+      <h3>엑셀 파일 넣기</h3>
+      <label id="drop" for="file"><b>엑셀 파일을 여기에 끌어다 놓으세요</b>또는 눌러서 고르기 (.xlsx)</label>
+      <input id="file" type="file" accept=".xlsx,.xls">
+    </section>
+    <section id="s2" class="card" hidden>
+      <h3>읽은 파일</h3>
+      <div class="file-ok"><div class="ic">XLS</div><div><b id="fname"></b><div class="muted"><span id="nrows"></span> · <span id="ncols"></span></div></div></div>
+      <div class="chips" id="colchips"></div>
+      <span id="colnames" hidden></span>
+    </section>
+  </div>
+
+  <!-- 2. 처방 -->
+  <div class="panel" id="p2" hidden>
+    <section id="s3" class="card">
+      <h3>처방 <small id="rulesrc"></small></h3>
+      <div id="norules" class="warn" hidden>
+        <b>이 파일에 맞는 처방이 없습니다</b>
+        <p>처방 파일(.json)을 골라 올려 주세요. 이 파일도 컴퓨터 밖으로 나가지 않습니다.</p>
+        <input id="rulefile" type="file" accept=".json,application/json">
+      </div>
+      <div id="rules" class="grid g3"></div>
+    </section>
+  </div>
+
+  <!-- 3. 정리 결과 -->
+  <div class="panel" id="p3" hidden>
+    <section id="s4">
+      <div class="grid g21 top">
+        <div>
+          <div class="card"><h3>줄 수 전후</h3><table id="beforeafter"></table></div>
+          <div class="card"><h3>처방별</h3><div class="scroll"><table id="perrule"></table></div></div>
+        </div>
+        <div>
+          <div class="card"><h3>확인</h3><ul id="checks" class="checks"></ul></div>
+          <div class="card"><h3>내려받기</h3>
+            <p><button id="dl-xlsx" class="btn" type="button">엑셀 한 파일로 받기</button></p>
+            <p><button id="dl-clean" class="btn ghost sm" type="button">정리본 CSV</button> <button id="dl-changes" class="btn ghost sm" type="button">바꾼 기록 CSV</button></p>
+            <div class="muted small">엑셀 한 파일에 정리본·바꾼기록·표시·제외·요약 시트가 들어 있습니다. CSV는 엑셀에서 한글이 깨지지 않게 만들었습니다.</div>
+          </div>
+        </div>
+      </div>
+      <div class="card mt16"><h3>미리보기 <small>앞의 몇 줄</small></h3><div id="preview"></div></div>
+    </section>
+  </div>
+
+  <!-- 4. 대시보드 -->
+  <div class="panel" id="p4" hidden><div id="dash"></div></div>
+
+  <!-- 5. 정답과 대조 -->
+  <div class="panel" id="p5" hidden>
+    <section id="s5" class="card">
+      <h3>정답과 대조란? <small>정답 파일은 사이트에 있지 않습니다. 내 컴퓨터에서 골라 주세요. 어디로도 보내지 않습니다.</small></h3>
+      <p class="explain">정리기가 정리한 결과(정리본)를, 미리 만들어 둔 <b>정답 파일</b>과 줄마다 맞춰 보는 단계입니다. 정리기가 얼마나 정답과 같게 정리했는지, 어디가 다른지 알 수 있습니다.</p>
+      <ul class="explain">
+        <li>정답 파일은 <b>.csv 또는 .xlsx</b>이고, 넣은 파일과 같은 칸 이름(근무일자·사번 등)이 있어야 합니다.</li>
+        <li>줄은 <b>근무일자와 사번이 같은 것끼리</b> 짝을 맞춥니다.</li>
+        <li>«어긋남»은 오류가 아닙니다. 정리기는 틀렸는지 확실하지 않은 값을 <b>고치지 않고 표시만</b> 하므로, 그런 줄은 정답과 다르게 남습니다. 표시 없이 어긋난 줄이 정리기가 놓친 줄입니다.</li>
+      </ul>
+      <input id="answer" type="file" accept=".csv,.xlsx,.xls">
+      <p id="cmperr" class="error" hidden></p>
+    </section>
+    <div id="cmpout"></div>
+  </div>
+
+  <div class="foot"><button class="btn ghost" id="prev" type="button">◀ 이전</button><button class="btn" id="next" type="button">다음 ▶</button></div>
+</main>
+<script src="lib/xlsx.full.min.js"></script>
+<script src="clean.js?v=9"></script>
+<script src="charts.js?v=7"></script>
+<script src="dashboard.js?v=8"></script>
+<script src="app.js?v=13"></script>
+</body>
+</html>

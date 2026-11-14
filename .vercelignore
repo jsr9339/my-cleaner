@@ -1,0 +1,22 @@
+# Vercel 배포에 올리지 않는 것 (저장소에는 있어도 배포 주소에서는 열리지 않게)
+CLAUDE.md
+README.md
+
+# 저장소에도 올리지 않는 것 (.gitignore 와 같음. 폴더째 배포할 때를 대비해 한 번 더 적음)
+tools/
+진단/
+.claude/
+정리결과_*
+정리본_*
+바꾼기록_*
+
+# 아직 올릴지 정하지 않은 것
+cleaner/
+design/
+기획서_근태초과근무정리기.md
+대시보드 시안.jpg
+
+# 배포에 필요 없는 설정 파일
+.git
+.gitignore
+.vercelignore
