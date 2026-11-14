@@ -96,27 +96,47 @@
     var pal = [css('--blue', '#4a5cf0'), css('--blue2', '#b5bdfa'), css('--teal', '#12b5a6'), css('--orange', '#f59e0b'), css('--red', '#e5484d'), css('--gray', '#bbbfc4'), '#7b61ff', '#9ad0f5'], i = 0;
     return Object.keys(dict).filter(function (k) { return k !== skip; }).sort(function (x, y) { return dict[y] - dict[x]; }).map(function (k) { return { label: k, value: dict[k], color: pal[i++ % pal.length] }; });
   }
-  function set(D, mode, tall) {
-    var S = D[mode], root = el('div', 'dash'), blue = css('--blue', '#4a5cf0'), blue2 = css('--blue2', '#b5bdfa'), orange = css('--orange', '#f59e0b'), gray = css('--gray', '#bbbfc4');
-    var row1 = el('div', 'grid ' + (tall ? 'g21' : 'g1')), row2 = el('div', 'grid ' + (tall ? 'g3' : 'g1'));
+  function cardsOf(D, mode, tall) {
+    var S = D[mode], out = {}, blue = css('--blue', '#4a5cf0'), blue2 = css('--blue2', '#b5bdfa'), orange = css('--orange', '#f59e0b'), gray = css('--gray', '#bbbfc4');
     if (S.has.over && S.has.date) {
-      var cm = card('월별 연장근무 합계', '시간' + (S.year ? ' · ' + S.year + '년' : '')); row1.appendChild(cm);
+      var cm = card('월별 연장근무 합계', '시간' + (S.year ? ' · ' + S.year + '년' : '')); 
       C.bars(cm._ch, ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'], [{ name: mode === 'before' ? '정리 전' : '정리 후', color: mode === 'before' ? blue2 : blue, values: S.months }], { height: tall ? 320 : 230 });
+      out.month = cm;
     }
     if (S.has.team) {
-      var ct = card('팀별 줄 수', '정식 이름 ' + D.teams.length + '팀 + 그 밖'); row1.appendChild(ct);
+      var ct = card('팀별 줄 수', '정식 이름 ' + D.teams.length + '팀 + 그 밖'); out.team = ct;
       var items = D.teams.map(function (n) { return { label: n, value: S.team[n] || 0, color: blue }; });
       var oRows = Object.keys(S.otherT).reduce(function (a, k) { return a + S.otherT[k]; }, 0);
       items.push({ label: '다른 표기 ' + Object.keys(S.otherT).length + '종', value: oRows, color: orange }); items.push({ label: '빈칸', value: S.teamBlank, color: gray });
       C.hbars(ct._ch, items);
     }
-    if (S.has.shift) { var cs = card('근무제 표기', '줄 수'); row2.appendChild(cs); C.donut(cs._ch, parts(S.shift, COLS.shift), { centerTop: '줄', centerText: fmt(Object.keys(S.shift).reduce(function (a, k) { return k === COLS.shift ? a : a + S.shift[k]; }, 0)) }); }
-    if (S.has.date) { var cd = card('근무일자 모양', '줄 수'); row2.appendChild(cd); C.donut(cd._ch, parts(S.forms), { centerTop: '줄', centerText: fmt(Object.keys(S.forms).reduce(function (a, k) { return a + S.forms[k]; }, 0)) }); }
-    var ci = card(mode === 'before' ? '정리 전에 찾은 문제' : '정리 후 확인이 필요한 항목', '처방별 줄 수'); row2.appendChild(ci);
+    if (S.has.shift) { var cs = card('근무제 표기', '줄 수'); out.shift = cs; C.donut(cs._ch, parts(S.shift, COLS.shift), { centerTop: '줄', centerText: fmt(Object.keys(S.shift).reduce(function (a, k) { return k === COLS.shift ? a : a + S.shift[k]; }, 0)) }); }
+    if (S.has.date) { var cd = card('근무일자 모양', '줄 수'); out.date = cd; C.donut(cd._ch, parts(S.forms), { centerTop: '줄', centerText: fmt(Object.keys(S.forms).reduce(function (a, k) { return a + S.forms[k]; }, 0)) }); }
+    var ci = card(mode === 'before' ? '정리 전에 찾은 문제' : '정리 후 확인이 필요한 항목', '처방별 줄 수'); out.issue = ci;
     var its = D.rules.map(function (r) { var s = D.stat[r.id] || { changed: 0, flagged: 0, excluded: 0 }; return { label: r.id + ' ' + (r.짧은이름 || r.why || ''), value: mode === 'before' ? s.changed + s.flagged + s.excluded : s.flagged, color: mode === 'before' ? blue : orange }; })
       .filter(function (x) { return x.value > 0; }).sort(function (x, y) { return y.value - x.value; }).slice(0, 8);
     if (its.length) C.hbars(ci._ch, its); else ci._ch.appendChild(el('p', 'muted', '없습니다.'));
-    root.appendChild(row1); root.appendChild(row2); return root;
+    return out;
+  }
+  // 한 쪽만 보여 줄 때: 위 줄(월별·팀별), 아래 줄(근무제·날짜·문제). 상자 사이 간격은 가로·세로 모두 같다.
+  function set(D, mode) {
+    var c = cardsOf(D, mode, true), root = el('div', 'dash');
+    var r1 = el('div', 'grid g21'), r2 = el('div', 'grid g3');
+    [c.month, c.team].forEach(function (x) { if (x) r1.appendChild(x); });
+    [c.shift, c.date, c.issue].forEach(function (x) { if (x) r2.appendChild(x); });
+    root.appendChild(r1); root.appendChild(r2); return root;
+  }
+  // 나란히: 같은 내용의 상자를 한 줄에 «수정 전 | 수정 후» 로 놓는다. 한 줄의 두 상자는 높이가 같다.
+  function pairs(D) {
+    var b = cardsOf(D, 'before', false), a = cardsOf(D, 'after', false), root = el('div', 'dash');
+    var head = el('div', 'grid g2');
+    [['수정 전', '넣은 파일 그대로', 'gray'], ['수정 후', '정리본', 'blue']].forEach(function (x) { var t = el('div', 'sec-title'); t.appendChild(document.createTextNode(x[0] + ' ')); t.appendChild(el('span', 'chip ' + x[2], x[1])); head.appendChild(t); });
+    root.appendChild(head);
+    ['month', 'team', 'shift', 'date', 'issue'].forEach(function (k) {
+      if (!b[k] && !a[k]) return;
+      var row = el('div', 'grid g2'); if (b[k]) row.appendChild(b[k]); if (a[k]) row.appendChild(a[k]); root.appendChild(row);
+    });
+    return root;
   }
 
   function render(host, ctx) {
@@ -131,11 +151,8 @@
       mode = m; Object.keys(btn).forEach(function (k) { btn[k].classList.toggle('on', k === m); });
       kpiBox.textContent = ''; kpiBox.appendChild(kpi(D, m)); body.textContent = '';
       if (m === 'both') {
-        var sp = el('div', 'grid g2 top');
-        [['before', '수정 전', '넣은 파일 그대로', 'gray'], ['after', '수정 후', '정리본', 'blue']].forEach(function (x) {
-          var col = el('div'); var t = el('div', 'sec-title'); t.appendChild(document.createTextNode(x[1] + ' ')); t.appendChild(el('span', 'chip ' + x[3], x[2])); col.appendChild(t); col.appendChild(set(D, x[0], false)); sp.appendChild(col);
-        }); body.appendChild(sp);
-      } else body.appendChild(set(D, m, true));
+        body.appendChild(pairs(D));
+      } else body.appendChild(set(D, m));
     }
     draw('after');
     return D;

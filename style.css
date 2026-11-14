@@ -132,3 +132,11 @@ table.cmp3 td:nth-child(5) { white-space:normal; min-width:260px; color:#4b5260;
 
 /* «규칙대로 정리» 버튼은 처방 탭 제목 줄 오른쪽 끝에 둔다 */
 .heading .run-top { margin-left:auto; align-self:center; padding:10px 26px; font-size:15px; box-shadow:0 2px 8px rgba(74,92,240,.3); }
+
+/* 대시보드: 상자 사이 간격은 가로 16px · 세로 16px 로 같게 */
+.dash { display:grid; gap:16px; }
+.dash .grid { align-items:stretch; }
+.dash .card { margin-top:0; }
+
+/* 세 칸으로 놓인 좁은 상자에서도 막대가 보이게 이름 칸을 줄인다 */
+.g3 .hb-row { grid-template-columns:minmax(78px,112px) 1fr 44px; gap:8px; }
